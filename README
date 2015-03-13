@@ -1,0 +1,46 @@
+
+一个修改lua虚拟机的尝试
+
+希望修改的地方有：
+
+1： 为for, while, repeat等语句提供continue
+2:  加入global关键字，声明全局变量必须使用global
+    使local关键字变为可选, 默认声明的变量为local
+3:  修改table结构，保存table的元素数量， 提供O(1)的查询函数table.size
+	不管table当作array还是hash, 均可用。
+
+
+
+
+目前完成：
+
+1.
+	现实方法：
+		与break类似，break实现是JUMP到循环的结束位置，而conintue是JUMP到循环开始（或者是判断是否继续）的位置
+		a. 在词法分析过程加入Token TK_CONTINUE. [llex]
+		b. 在语法分析过程中 [lparser]
+			b1.
+				在BlockCnt结构中加入 continuelist, 用来记录该Block中所有未决continue JMP, 以luaK_concat串起来.
+			b2.
+				在原来的isbreakable变量（原来是bool量，用来区分是否是循环BLOCK）改为loopstat,
+				其值分别代表 0: 非循环 1: for循环 2: while 和 repeat循环
+				
+			b3. 
+				当遇到continue token时，调用continuestat, 沿着BlockCnt的*previous查询上一个循环Block，
+				根据loopstate来把continuelist concat到循环Block（while和repeat的情况）或下一级Block（
+				for的情况）
+			b4. 
+				在循环block语法分析结束后，调用luaK_patchlist或luaK_patchtohere,把未决的JMP continuelist
+				勾到正确的地方。
+				分别对应以下位置
+				for num： OP FORLOOP
+				for in:  OP TFORLOOP
+				while: 前置条件判断处  
+				repeat: 循环体BLOCK的开始处
+
+2....
+		
+
+
+
+
